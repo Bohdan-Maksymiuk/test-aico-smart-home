@@ -4,11 +4,54 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Alert } from '@/ui/Alert';
 import { Button } from '@/ui/Button';
+import { Card } from '@/ui/Card';
 import { DeviceCard } from './DeviceCard';
 import { DeviceControls } from './DeviceControls';
 import { DeleteDeviceDialog } from './DeleteDeviceDialog';
 import { DeviceFormDialog } from './DeviceFormDialog';
 import { devicesQuery } from './devices-query';
+
+function DeviceListSkeleton() {
+  return (
+    <div aria-busy="true" aria-live="polite" className="space-y-6">
+      <span className="sr-only">Loading devices…</span>
+      <div className="flex justify-end" aria-hidden="true">
+        <div className="bg-muted h-9 w-32 animate-pulse rounded-md" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }, (_, index) => (
+          <article key={index} aria-hidden="true">
+            <Card className="h-60 animate-pulse">
+              <Card.Header>
+                <div className="bg-muted h-5 w-2/3 rounded" />
+                <Card.Action>
+                  <div className="flex gap-1">
+                    <div className="bg-muted size-9 rounded-md" />
+                    <div className="bg-muted size-9 rounded-md" />
+                  </div>
+                </Card.Action>
+              </Card.Header>
+              <Card.Content className="grid gap-4">
+                <div className="bg-muted h-4 w-1/3 rounded" />
+                <div className="grid gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="bg-muted h-4 w-20 rounded" />
+                    <div className="bg-muted h-5 w-10 rounded" />
+                  </div>
+                  <div className="bg-muted h-2 w-full rounded-full" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="bg-muted h-4 w-16 rounded" />
+                  <div className="bg-muted h-5 w-9 rounded-full" />
+                </div>
+              </Card.Content>
+            </Card>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function DeviceListPage() {
   const query = useQuery(devicesQuery);
@@ -17,7 +60,7 @@ export function DeviceListPage() {
   const [deletedDevice, setDeletedDevice] = useState<Device | null>(null);
   const [isAddingDialogOpen, setIsAddingDialogOpen] = useState(false);
 
-  if (query.isPending) return <p role="status">Loading…</p>;
+  if (query.isPending) return <DeviceListSkeleton />;
 
   if (query.isError) {
         return (
