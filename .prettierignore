@@ -1,0 +1,7 @@
+package-lock.json
+.scratch/
+.agents/
+.claude/
+skills-lock.json
+CONTEXT.md
+TASK.md

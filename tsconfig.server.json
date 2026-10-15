@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"],
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": { "@shared/*": ["src/shared/*"] }
+  },
+  "include": [
+    "src/server",
+    "src/shared",
+    "drizzle.config.ts",
+    "tsup.config.ts",
+    "vitest.config.ts",
+    "vite.config.ts"
+  ]
+}

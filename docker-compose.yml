@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: smart_home
+      POSTGRES_PASSWORD: smart_home
+      POSTGRES_DB: smart_home
+    # Published so `npm run dev` on the host can use this database; override the
+    # host port with DB_PORT if 5432 is taken.
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U smart_home -d smart_home']
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgres://smart_home:smart_home@db:5432/smart_home
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '${APP_PORT:-3000}:3000'
+    # Longer than SHUTDOWN_TIMEOUT_MS (10s), so the API can close its pool
+    # before Docker sends SIGKILL.
+    stop_grace_period: 15s
+    restart: unless-stopped
+
+volumes:
+  db-data:
