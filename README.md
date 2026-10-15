@@ -48,6 +48,7 @@ drizzle/     Generated SQL migrations
 - **Hard delete.** There is nothing that references a Device yet, so there is nothing to retain.
 - **Optimistic UI for controls only.** Toggles and sliders update instantly and roll back with an error toast if the API rejects the change; create, edit and delete wait for the server.
 - **No pagination.** A household has tens of Devices.
+- **No memoisation in React.** In general, it adds more boilerplate and complexity to the code. At this scale it makes no tangible imrovement, if needs be - problem is solved by React compiler.
 
 ## What I paid attention to
 
@@ -65,6 +66,7 @@ drizzle/     Generated SQL migrations
 - **Optimistic concurrency** handle case of simulranious state writes
 - **Feature-Sliced Design** for the web app once it has more than one page.
 - **Standalone migrations** migrations should be a seperate process; it shouldn't run on every server start
+- **Rate limiting** prevent abuse of the server endpoints; those could be genuine attacks/ frontend bugs
 
 ## Deployment
 
