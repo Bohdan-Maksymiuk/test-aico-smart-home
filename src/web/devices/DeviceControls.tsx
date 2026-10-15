@@ -1,4 +1,8 @@
-import { thermostatModeSchema, type Device, type DeviceStatePatch } from '@shared/index';
+import {
+  thermostatModeSchema,
+  type Device,
+  type DeviceStatePatch,
+} from '@shared/index';
 import { useEffect, useId, useMemo, useState } from 'react';
 import debounce from 'lodash.debounce';
 import { Label } from '@/ui/Label';
@@ -67,9 +71,12 @@ export function DeviceControls({ device }: { device: Device }) {
     [device, update],
   );
 
-  useEffect(() => () => {
-    debouncedUpdateMutate.cancel()
-  }, [debouncedUpdateMutate]);
+  useEffect(
+    () => () => {
+      debouncedUpdateMutate.cancel();
+    },
+    [debouncedUpdateMutate],
+  );
 
   if (device.type === 'light') {
     return (
@@ -97,7 +104,7 @@ export function DeviceControls({ device }: { device: Device }) {
           step={1}
           unit="%"
           onCommit={(brightness) => {
-            debouncedUpdateMutate({ brightness })
+            debouncedUpdateMutate({ brightness });
           }}
         />
       </div>
@@ -113,7 +120,7 @@ export function DeviceControls({ device }: { device: Device }) {
         step={0.5}
         unit=" °C"
         onCommit={(targetTemp) => {
-            debouncedUpdateMutate({ targetTemp })
+          debouncedUpdateMutate({ targetTemp });
         }}
       />
       <div className="grid gap-2">

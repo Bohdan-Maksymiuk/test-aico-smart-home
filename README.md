@@ -56,8 +56,8 @@ drizzle/     Generated SQL migrations
 - **Logging:** log startup failures and unexpected server errors
 - **UX:** app should feel fast for user with a visual feedback when something goes wrong
 
-
 ## With more time
+
 - Separate request validation errors from errors found while reading database rows. A malformed row should produce a server error, not a 422 that blames the request.
 - **Households and authentication.** Add a `households` table, a `household_id` foreign key on Devices, and scope every query by the caller's Household; a Device in another Household is a 404, not a 403.
 - **Readings and real-time updates.** Devices report Readings (e.g. current temperature) that are stored separately from State in a time-series store, and the UI receives changes pushed over Server-Sent Events or WebSockets instead of refetching.

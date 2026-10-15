@@ -63,7 +63,7 @@ export function DeviceListPage() {
   if (query.isPending) return <DeviceListSkeleton />;
 
   if (query.isError) {
-        return (
+    return (
       <Alert variant="destructive">
         <Alert.Title>Can't reach the server</Alert.Title>
         <Alert.Description>
@@ -145,7 +145,10 @@ export function DeviceListPage() {
           </div>
         )}
       </div>
-      <DeviceFormDialog open={isAddingDialogOpen} onOpenChange={setIsAddingDialogOpen} />
+      <DeviceFormDialog
+        open={isAddingDialogOpen}
+        onOpenChange={setIsAddingDialogOpen}
+      />
       {editedDevice && (
         <DeviceFormDialog
           device={editedDevice}
