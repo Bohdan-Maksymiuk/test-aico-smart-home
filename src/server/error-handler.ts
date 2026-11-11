@@ -1,6 +1,5 @@
 import type { ErrorRequestHandler } from 'express';
 import type { Logger } from 'pino';
-import { ZodError } from 'zod';
 import { HttpError } from './http-error';
 import { problem, sendProblem } from './problem';
 
@@ -16,20 +15,6 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
 
     if (error instanceof HttpError) {
       sendProblem(res, problem(error.status, error.message, error.issues));
-      return;
-    }
-    if (error instanceof ZodError) {
-      sendProblem(
-        res,
-        problem(
-          422,
-          'The request is invalid.',
-          error.issues.map((issue) => ({
-            path: issue.path.map(String).join('.'),
-            message: issue.message,
-          })),
-        ),
-      );
       return;
     }
     if (isExposedClientError(error)) {
