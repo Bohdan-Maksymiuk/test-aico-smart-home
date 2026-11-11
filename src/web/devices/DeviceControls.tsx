@@ -1,10 +1,5 @@
-import {
-  thermostatModeSchema,
-  type Device,
-  type DeviceStatePatch,
-} from '@shared/index';
-import { useEffect, useId, useMemo, useState } from 'react';
-import debounce from 'lodash.debounce';
+import { thermostatModeSchema, type Device } from '@shared/index';
+import { useEffect, useId, useState } from 'react';
 import { Label } from '@/ui/Label';
 import { Slider } from '@/ui/Slider';
 import { Switch } from '@/ui/Switch';
@@ -63,21 +58,6 @@ function NumericSetting({
 
 export function DeviceControls({ device }: { device: Device }) {
   const update = useUpdateDeviceState();
-  const debouncedUpdateMutate = useMemo(
-    () =>
-      debounce((patch: DeviceStatePatch) => {
-        update.mutate({ device, patch: patch });
-      }, 300),
-    [device, update],
-  );
-
-  useEffect(
-    () => () => {
-      debouncedUpdateMutate.cancel();
-    },
-    [debouncedUpdateMutate],
-  );
-
   if (device.type === 'light') {
     return (
       <div className="grid gap-4 text-sm">
@@ -104,7 +84,7 @@ export function DeviceControls({ device }: { device: Device }) {
           step={1}
           unit="%"
           onCommit={(brightness) => {
-            debouncedUpdateMutate({ brightness });
+            update.mutate({ device, patch: { brightness } });
           }}
         />
       </div>
@@ -120,7 +100,7 @@ export function DeviceControls({ device }: { device: Device }) {
         step={0.5}
         unit=" °C"
         onCommit={(targetTemp) => {
-          debouncedUpdateMutate({ targetTemp });
+          update.mutate({ device, patch: { targetTemp } });
         }}
       />
       <div className="grid gap-2">
