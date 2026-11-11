@@ -62,7 +62,7 @@ export function DeviceListPage() {
 
   if (query.isPending) return <DeviceListSkeleton />;
 
-  if (query.isError) {
+  if (query.data === undefined) {
     return (
       <Alert variant="destructive">
         <Alert.Title>Can't reach the server</Alert.Title>
@@ -91,6 +91,25 @@ export function DeviceListPage() {
   return (
     <>
       <div className="space-y-6">
+        {query.isError && (
+          <Alert>
+            <Alert.Title>Couldn't refresh devices</Alert.Title>
+            <Alert.Description>
+              <p>
+                Showing the last loaded devices. Their state may be out of date.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                disabled={query.isFetching}
+                onClick={() => void query.refetch()}
+              >
+                {query.isFetching ? 'Retrying…' : 'Retry'}
+              </Button>
+            </Alert.Description>
+          </Alert>
+        )}
         <div className="flex justify-end">
           <Button
             onClick={() => {

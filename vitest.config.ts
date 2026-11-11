@@ -2,7 +2,10 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
-    alias: { '@shared': new URL('./src/shared', import.meta.url).pathname },
+    alias: {
+      '@shared': new URL('./src/shared', import.meta.url).pathname,
+      '@': new URL('./src/web', import.meta.url).pathname,
+    },
   },
-  test: { include: ['src/**/*.test.ts'] },
+  test: { include: ['src/**/*.test.{ts,tsx}'] },
 });
