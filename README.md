@@ -8,7 +8,15 @@ Requires Docker with Compose v2.
 docker compose up --build
 ```
 
-Open <http://localhost:3000>. On startup the app applies database migrations and, if there are no Devices yet, seeds a few demo ones. Reset all data with `docker compose down -v`.
+Open <http://localhost:3000>. On startup the app applies database migrations; a new household starts empty. Reset all data with `docker compose down -v`.
+
+To start with demo devices, explicitly opt in:
+
+```sh
+SEED_DEMO=true docker compose up --build
+```
+
+The seed runs only when the household is empty and leaves existing devices alone. It runs on every startup while `SEED_DEMO=true`, so remove the opt-in when you want an empty household to stay empty after a restart (recreate the Compose app with `docker compose up -d` to apply the change). For local development, set `SEED_DEMO=true` in `.env` to opt in the same way.
 
 ## Local development
 
