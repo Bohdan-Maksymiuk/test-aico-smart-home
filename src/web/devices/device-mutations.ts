@@ -8,7 +8,11 @@ import {
   type FieldIssue,
   type UpdateDeviceInput,
 } from '@shared/index';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { devicesQuery } from './devices-query';
 
@@ -163,57 +167,115 @@ function replaceCachedDevice(
   );
 }
 
-function stateOf(devices: Device[] | undefined, id: string): StateFields {
-  return devices?.find((device) => device.id === id)?.state ?? {};
-}
+// Queues belong to the query client so separate controls for the same device
+// share ordering, while different devices can still save independently.
+type PendingChange = {
+  variables: StateChange;
+  previous: Promise<void>;
+  release: () => void;
+};
+type DeviceQueue = {
+  confirmed: Device;
+  pending: PendingChange[];
+  tail: Promise<void>;
+};
+const queues = new WeakMap<QueryClient, Map<string, DeviceQueue>>();
 
-export function useUpdateDeviceState() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ device, patch }: StateChange) =>
-      requestDevice(`${API_BASE_PATH}/devices/${device.id}`, 'PATCH', {
-        state: patch,
-      }),
-    onMutate: async ({ device, patch }) => {
-      await queryClient.cancelQueries({ queryKey: devicesQuery.queryKey });
-      const state = stateOf(
-        queryClient.getQueryData<Device[]>(devicesQuery.queryKey),
-        device.id,
-      );
-      const previous = Object.fromEntries(
-        Object.keys(patch).map((field) => [field, state[field]]),
-      );
+export function deviceStateMutationOptions(queryClient: QueryClient) {
+  let clientQueues = queues.get(queryClient);
+  if (!clientQueues) {
+    clientQueues = new Map();
+    queues.set(queryClient, clientQueues);
+  }
+  const activeQueues = clientQueues;
+
+  return {
+    onMutate: (variables: StateChange) => {
+      const { device, patch } = variables;
+      void queryClient.cancelQueries({ queryKey: devicesQuery.queryKey });
+      let queue = activeQueues.get(device.id);
+      if (!queue) {
+        const confirmed =
+          queryClient
+            .getQueryData<Device[]>(devicesQuery.queryKey)
+            ?.find((cached) => cached.id === device.id) ?? device;
+        queue = { confirmed, pending: [], tail: Promise.resolve() };
+        activeQueues.set(device.id, queue);
+      }
+      const previous = queue.tail;
+      let release!: () => void;
+      queue.tail = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const change = { variables, previous, release };
+      queue.pending.push(change);
       queryClient.setQueryData<Device[]>(devicesQuery.queryKey, (devices) =>
         updateCachedState(devices, device.id, patch),
       );
-      return { previous };
+      return { queue, change };
     },
-    onSuccess: (device) => {
-      queryClient.setQueryData<Device[]>(devicesQuery.queryKey, (devices) =>
-        replaceCachedDevice(devices, device),
+    mutationFn: async (variables: StateChange) => {
+      const { device, patch } = variables;
+      const queue = activeQueues.get(device.id);
+      const change = queue?.pending.find(
+        (pending) => pending.variables === variables,
       );
-    },
-    onError: (error, { device, patch }, context) => {
-      queryClient.setQueryData<Device[]>(devicesQuery.queryKey, (devices) => {
-        const state = stateOf(devices, device.id);
-        const patched: StateFields = patch;
-        const rollback = Object.fromEntries(
-          Object.entries(context?.previous ?? {}).filter(
-            ([field]) => state[field] === patched[field],
-          ),
-        );
-        return updateCachedState(devices, device.id, rollback);
+      if (!change) throw new Error('Device state change was not queued');
+      await change.previous;
+      return requestDevice(`${API_BASE_PATH}/devices/${device.id}`, 'PATCH', {
+        state: patch,
       });
+    },
+    onSuccess: (
+      device: Device,
+      _variables: StateChange,
+      context: { queue: DeviceQueue; change: PendingChange },
+    ) => {
+      context.queue.confirmed = device;
+    },
+    onError: (error: Error, { device }: StateChange) => {
       if (error instanceof DeviceNotFound) {
         toast.error(`${device.name} was removed`, {
           description: 'This Device was removed, so your change was not made.',
         });
-        void queryClient.invalidateQueries({ queryKey: devicesQuery.queryKey });
         return;
       }
       toast.error(`Couldn't update ${device.name}`, {
         description: 'Your change was undone. Please try again later.',
       });
     },
-  });
+    onSettled: (
+      _data: Device | undefined,
+      _error: Error | null,
+      { device }: StateChange,
+      context: { queue: DeviceQueue; change: PendingChange } | undefined,
+    ) => {
+      if (!context) return;
+      const { queue, change } = context;
+      queue.pending = queue.pending.filter((pending) => pending !== change);
+      const visible = queue.pending.reduce(
+        (current, pending) =>
+          ({
+            ...current,
+            state: { ...current.state, ...pending.variables.patch },
+          }) as Device,
+        queue.confirmed,
+      );
+      queryClient.setQueryData<Device[]>(devicesQuery.queryKey, (devices) =>
+        replaceCachedDevice(devices, visible),
+      );
+      change.release();
+      if (queue.pending.length === 0) activeQueues.delete(device.id);
+      // The list is shared by all devices, so wait for every optimistic write
+      // before allowing a refetch to replace it.
+      if (activeQueues.size === 0) {
+        void queryClient.invalidateQueries({ queryKey: devicesQuery.queryKey });
+      }
+    },
+  };
+}
+
+export function useUpdateDeviceState() {
+  const queryClient = useQueryClient();
+  return useMutation(deviceStateMutationOptions(queryClient));
 }
