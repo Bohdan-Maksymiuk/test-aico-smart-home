@@ -1,5 +1,9 @@
-import { thermostatModeSchema, type Device } from '@shared/index';
-import { useEffect, useId, useState } from 'react';
+import {
+  thermostatModeSchema,
+  type Device,
+  type DeviceStatePatch,
+} from '@shared/index';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Label } from '@/ui/Label';
 import { Slider } from '@/ui/Slider';
 import { Switch } from '@/ui/Switch';
@@ -58,6 +62,32 @@ function NumericSetting({
 
 export function DeviceControls({ device }: { device: Device }) {
   const update = useUpdateDeviceState();
+  const pending = useRef<{
+    timer: ReturnType<typeof setTimeout>;
+    send: () => void;
+  } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pending.current) {
+        clearTimeout(pending.current.timer);
+        pending.current.send();
+        pending.current = null;
+      }
+    };
+  }, [device.id]);
+
+  function commitNumeric(patch: DeviceStatePatch) {
+    if (pending.current) clearTimeout(pending.current.timer);
+    const send = () => {
+      update.mutate({ device, patch });
+    };
+    const timer = setTimeout(() => {
+      pending.current = null;
+      send();
+    }, 300);
+    pending.current = { timer, send };
+  }
   if (device.type === 'light') {
     return (
       <div className="grid gap-4 text-sm">
@@ -84,7 +114,7 @@ export function DeviceControls({ device }: { device: Device }) {
           step={1}
           unit="%"
           onCommit={(brightness) => {
-            update.mutate({ device, patch: { brightness } });
+            commitNumeric({ brightness });
           }}
         />
       </div>
@@ -100,7 +130,7 @@ export function DeviceControls({ device }: { device: Device }) {
         step={0.5}
         unit=" °C"
         onCommit={(targetTemp) => {
-          update.mutate({ device, patch: { targetTemp } });
+          commitNumeric({ targetTemp });
         }}
       />
       <div className="grid gap-2">
