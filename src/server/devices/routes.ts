@@ -5,6 +5,7 @@ import {
 } from '@shared/index';
 import { Router } from 'express';
 import type { Db } from '../db/client';
+import { validateRequest } from '../validate-request';
 import {
   createDevice,
   deleteDevice,
@@ -20,7 +21,7 @@ export function deviceRouter(db: Db): Router {
   router.post('/', async (req, res) => {
     const device = await createDevice(
       db,
-      createDeviceInputSchema.parse(req.body),
+      validateRequest(createDeviceInputSchema, req.body),
     );
 
     res
@@ -37,7 +38,7 @@ export function deviceRouter(db: Db): Router {
 
   router.patch('/:id', async (req, res) => {
     const type = await getDeviceType(db, req.params.id);
-    const input = updateDeviceInputSchema(type).parse(req.body);
+    const input = validateRequest(updateDeviceInputSchema(type), req.body);
 
     res.json(await updateDevice(db, req.params.id, input));
   });

@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { Express } from 'express';
-import pino from 'pino';
+import pino, { type Logger } from 'pino';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach } from 'vitest';
 import { createApp } from '../app';
@@ -23,6 +23,7 @@ function useApp(reachable: boolean) {
   let client: PGlite | undefined;
   let db: PgliteDatabase | undefined;
   let app: Express | undefined;
+  let logger: Logger;
 
   beforeAll(async () => {
     client = new PGlite();
@@ -31,9 +32,10 @@ function useApp(reachable: boolean) {
     else await client.close();
     // Both Drizzle drivers implement the PostgreSQL query surface consumed by
     // the app; production's type remains the node-postgres driver.
+    logger = pino({ level: 'silent' });
     app = createApp({
       db: db as unknown as Db,
-      logger: pino({ level: 'silent' }),
+      logger,
     });
   });
 
@@ -48,6 +50,13 @@ function useApp(reachable: boolean) {
   });
 
   return {
+    db() {
+      if (!db) throw new Error('PGlite database used outside a test');
+      return db;
+    },
+    logger() {
+      return logger;
+    },
     http() {
       if (!app) throw new Error('PGlite app used outside a test');
       return request(app);
