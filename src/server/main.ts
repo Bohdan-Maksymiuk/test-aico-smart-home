@@ -2,7 +2,7 @@ import { createApp } from './app';
 import { loadConfig } from './config';
 import { createDb, createPool, migrateDatabase } from './db/client';
 import { createLogger } from './logging';
-import { seedDemoHousehold } from './seed';
+import { seedDemoHouseholdIfRequested } from './seed';
 
 const config = loadConfig(process.env);
 const logger = createLogger(config.LOG_LEVEL);
@@ -19,7 +19,7 @@ try {
 logger.info('Database migrations applied');
 
 try {
-  await seedDemoHousehold(db);
+  await seedDemoHouseholdIfRequested(db, config.SEED_DEMO);
 } catch (error) {
   logger.fatal({ err: error }, 'Demo household seed failed');
   await pool.end();

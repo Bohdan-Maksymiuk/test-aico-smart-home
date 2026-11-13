@@ -2,6 +2,10 @@ import { z } from 'zod';
 
 const configSchema = z.object({
   DATABASE_URL: z.url(),
+  SEED_DEMO: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   PORT: z.coerce.number().int().min(0).max(65_535).default(3000),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])

@@ -35,7 +35,12 @@ const demoHousehold = [
   },
 ].map((device) => createDeviceInputSchema.parse(device));
 
-export async function seedDemoHousehold(db: Db): Promise<void> {
+export async function seedDemoHouseholdIfRequested(
+  db: Db,
+  requested: boolean,
+): Promise<void> {
+  if (!requested) return;
+
   await db.transaction(async (tx) => {
     // Serialize startup checks and block writes until the seed commits.
     await tx.execute(sql`LOCK TABLE ${devices} IN SHARE ROW EXCLUSIVE MODE`);
