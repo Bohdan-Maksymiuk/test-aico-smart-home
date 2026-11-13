@@ -21,6 +21,7 @@ services:
     build: .
     environment:
       DATABASE_URL: postgres://smart_home:smart_home@db:5432/smart_home
+      SEED_DEMO: ${SEED_DEMO:-false}
     depends_on:
       db:
         condition: service_healthy
